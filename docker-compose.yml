@@ -1,0 +1,98 @@
+name: agent-runtime
+
+services:
+  agent:
+    image: ${AGENT_IMAGE:-t0twn/agent-runtime:latest}
+
+    container_name: ${AGENT_CONTAINER_NAME:-agent-runtime}
+    hostname: ${AGENT_HOSTNAME:-agent-runtime}
+
+    user: "0:0"
+    init: true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    working_dir: /root/workspace
+
+    networks:
+      - agent-network
+
+    environment:
+      HOME: /root
+      USER: root
+      LOGNAME: root
+      SHELL: /bin/bash
+      TZ: "${TZ:?set TZ}"
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TERM: xterm-256color
+      COLORTERM: truecolor
+      EDITOR: vi
+      VISUAL: vi
+      PAGER: less
+
+      PATH: /root/.local/bin:/root/.cargo/bin:/root/go/bin:/root/tools/bin:/root/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+      XDG_CONFIG_HOME: /root/.config
+      XDG_CACHE_HOME: /root/.cache
+      XDG_DATA_HOME: /root/.local/share
+      XDG_STATE_HOME: /root/.local/state
+
+      UV_CACHE_DIR: /root/.cache/uv
+      UV_TOOL_DIR: /root/.local/share/uv/tools
+      UV_TOOL_BIN_DIR: /root/.local/bin
+      PIP_CACHE_DIR: /root/.cache/pip
+
+      FNM_DIR: /root/.local/share/fnm
+      NPM_CONFIG_PREFIX: /root/.local
+      NPM_CONFIG_CACHE: /root/.cache/npm
+      PNPM_HOME: /root/.local/share/pnpm
+      COREPACK_HOME: /root/.cache/node/corepack
+
+      CARGO_HOME: /root/.cargo
+      RUSTUP_HOME: /root/.rustup
+
+      GOPATH: /root/go
+      GOBIN: /root/.local/bin
+
+      PLAYWRIGHT_BROWSERS_PATH: /root/.cache/ms-playwright
+      HF_HOME: /root/.cache/huggingface
+
+      # Nix store is separately persisted at /nix. Sandbox is disabled because
+      # nested Linux namespace creation is often restricted by Docker defaults;
+      # the outer container remains the isolation boundary.
+      NIX_CONFIG: |-
+        experimental-features = nix-command flakes
+        sandbox = false
+
+      AGENT_WORKSPACE: /root/workspace
+      AGENT_TOOLS_DIR: /root/tools
+
+    volumes:
+      # Persistent agent HOME: configs, credentials, caches, tools and workspace.
+      - "${AGENT_ROOT_PATH:?set AGENT_ROOT_PATH}:/root"
+
+      # Nix cannot be fully persisted under HOME: its store/state live in /nix.
+      - "${AGENT_ROOT_PATH}/.nix:/nix"
+
+      # Alternative: bind-mount source independently of the agent HOME volume.
+      # - ./workspace:/root/workspace
+
+    # Chromium/Playwright frequently needs more than Docker's default /dev/shm.
+    shm_size: "2gb"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+
+    stop_grace_period: 10s
+    command: ["runsvdir", "/root/.sv.run"]
+
+networks:
+  agent-network:
+    name: "${NETWORK:?set NETWORK}"
+    external: true

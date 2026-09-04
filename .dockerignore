@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+workspace/
+*.log
+.DS_Store
+node_modules/
+__pycache__/
+*.pyc
+target/
+dist/
+build/

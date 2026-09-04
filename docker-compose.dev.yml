@@ -1,0 +1,11 @@
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-24}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-24.04}
+        UV_VERSION: ${UV_VERSION:-0.12.9}
+        FNM_VERSION: ${FNM_VERSION:-1.39.0}
+        COREPACK_VERSION: ${COREPACK_VERSION:-0.36.0}
